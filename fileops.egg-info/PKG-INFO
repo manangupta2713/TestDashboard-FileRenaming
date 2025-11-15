@@ -1,0 +1,10 @@
+Metadata-Version: 2.4
+Name: fileops
+Version: 0.1.0
+Summary: Simple utility scripts for file operations (case-preserving replace, etc.)
+Requires-Python: >=3.9
+Requires-Dist: python-docx>=1.1.0
+Requires-Dist: openpyxl>=3.1.0
+Requires-Dist: PySide6
+Requires-Dist: fastapi
+Requires-Dist: uvicorn

@@ -1,0 +1,60 @@
+// src/App.jsx
+import { Canvas } from "@react-three/fiber";
+import { Environment } from "@react-three/drei";
+import { motion } from "framer-motion";
+import WaveScene from "./components/WaveScene";
+import Particles from "./components/Particles";
+
+export default function App() {
+  return (
+    <div className="relative min-h-screen w-full overflow-hidden bg-nm_bg">
+      {/* 3D Background Layer */}
+      <div className="absolute inset-0 opacity-60">
+        <Canvas camera={{ position: [0, 2.5, 7], fov: 55 }}>
+          <color attach="background" args={["#02030a"]} />
+          <fog attach="fog" args={["#02030a", 8, 18]} />
+
+          <ambientLight intensity={0.3} />
+          <directionalLight
+            intensity={1.2}
+            position={[4, 6, 4]}
+            color="#00F5D4"
+          />
+          <directionalLight
+            intensity={0.8}
+            position={[-4, 3, -3]}
+            color="#FF4ECD"
+          />
+
+          <WaveScene />
+          <Particles />
+
+          <Environment preset="night" />
+        </Canvas>
+      </div>
+
+      {/* Main Foreground Panel */}
+      <div className="relative z-10 flex items-center justify-center min-h-screen p-6">
+        <motion.div
+          initial={{ opacity: 0, y: 40, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 1.1, ease: "easeOut" }}
+          className="backdrop-blur-xl bg-nm_panel border border-gray-700/40
+                     rounded-3xl px-10 py-12 shadow-[0_0_40px_rgba(0,245,212,0.18)]
+                     max-w-4xl w-full text-center"
+        >
+          <h1 className="text-5xl font-bold mb-4 text-nm_teal drop-shadow-[0_0_18px_rgba(0,245,212,0.7)]">
+            NeuraMax Smart Renamer
+          </h1>
+          <p className="text-gray-300 mb-3 text-lg">
+            Cinematic Option C · Background engine online
+          </p>
+          <p className="text-nm_yellow text-sm">
+            Next step: glass console · folder + operations grid · premium Run
+            button
+          </p>
+        </motion.div>
+      </div>
+    </div>
+  );
+}
