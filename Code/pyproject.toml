@@ -18,7 +18,7 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools]
 # Explicitly tell setuptools which root-level modules belong to this project
 py-modules = [
-  "file_rename",
-  "replace_word_in_files_and_filenames",
+  "Depr.file_rename-PySide6",
+  "Upcoming.replace_word_in_files_and_filenames",
   "Option_C-Max-API",
 ]

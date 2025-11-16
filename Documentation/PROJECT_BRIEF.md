@@ -37,6 +37,21 @@ NeuraMax Smart Renamer is a local-first dashboard that lets a user clean up a si
 User input → OpsConsole state → Axios POST to FastAPI → compute_new_names → response summary/mapping → OpsConsole preview/run table
 ```
 
+## Repository Orientation & First Steps
+1. **Start with docs**: skim `AGENTS.md` (collaboration rules) at repo root, then this brief, then `Documentation/PROGRESS_TRACKER.md` for current status.
+2. **Backend (FastAPI)**
+   - File: `Code/Option_C-Max-API.py`.
+   - What to look for: `compute_new_names`, the `/preview` + `/run` route handlers, and the helper functions that add or strip prefixes/suffixes.
+   - Typical workflow: from the `Code` folder run `uvicorn Option_C-Max-API:app --reload` (or `python Option_C-Max-API.py`) while testing locally; adjust helper logic here.
+3. **Frontend (Vite/React)**
+   - Folder: `Code/neura-ui/`.
+   - Key files after `npm install && npm run dev`: `src/main.jsx` (mounts React), `src/App.jsx` (background shell and layout), and `src/components/OpsConsole.jsx` (all rename controls, preview table, and API calls). Visual extras live beside it (`BlobField.jsx`, `WaveScene.jsx`, etc.).
+   - Usual workflow: keep `npm run dev` running, edit `OpsConsole` when touching workflow logic, update `App.jsx` for layout/visual framing.
+4. **Testing a change**
+   - Backend-only tweak: adjust `Code/Option_C-Max-API.py`, hit `/preview` or `/run` via curl/Postman or from the UI.
+   - Frontend tweak: edit `Code/neura-ui/src/**`, rely on the running API at `127.0.0.1:8000`.
+5. **Need a map?** Use `PROGRESS_TRACKER.md`’s “Agent Onboarding Map” (see below) whenever you are unsure which feature maps to which files.
+
 ## Current Boundaries
 - Only simple prefix/suffix operations (no find/replace, regex, or nested folders yet).
 - Relies on the user to copy/paste Windows-style paths (UI hints reflect that).

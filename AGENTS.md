@@ -8,6 +8,7 @@
 ## Communication Style
 - Assume the user is not a coder. Explain every idea and instruction in clear, simple, step-by-step language.
 - Provide thorough, spoon-fed guidance for any process or proposal so the user can follow along comfortably.
+- When giving directions, provide only the next 1-2 steps at a time so we can review progress together before moving forward.
 
 ## Workflow Reminders
 - Listen closely to directions in the chat window.
