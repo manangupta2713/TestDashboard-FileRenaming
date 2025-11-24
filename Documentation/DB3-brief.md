@@ -15,7 +15,7 @@ Bring InsightFace similarity sweeps (two scripts) and the Nitara headshot croppe
 - **Motion/Visuals:** CSS Houdini paint worklet (`static/houdini/orbital-noise.js`) for the nebula background, gradient overlays, spark progress bars.
 - **HTTP:** native `fetch` to the FastAPI endpoints; no Redux/state libs required.
 - **Layout Guardrails:** match the existing NeuraMax frame (left rail, title card, centered main card, right rail, no scrolling). React dashboards remain for other modules; DB3 uses SvelteKit independently but with the same visual proportions.
-- **Embedding (Option B):** We embed the Svelte app inside the React shell, so switching dashboards stays instant. During dev, the React app loads the Svelte dev server (configurable via `VITE_FACE_STUDIO_DEV_URL`). For production, run `npm run build:embed` in `Code/face-studio` to copy the bundle into `Code/neura-ui/public/face-studio`, which the React iframe serves at `/face-studio/index.html`. React now passes an `embed=1` flag so the Svelte app yields the left/title/right rails back to React and paints only the maroon main card; all dashboards therefore reuse the identical outer frame.
+- **Embedding (Option B):** We embed the Svelte app inside the React shell, so switching dashboards stays instant. During dev, the React app loads the Svelte dev server (configurable via `VITE_FACE_STUDIO_DEV_URL`). For production, run `npm run build:embed` in `Code/face-studio` to copy the bundle into `Code/neura-ui/public/face-studio`, which the React iframe serves at `/face-studio/index.html`. React now passes an `embed=1` flag so the Svelte app paints only the maroon main card and posts telemetry back up; the React shell owns the outer rails (left, title, right) and renders the live Insight console via `FaceRightRail.jsx`.
 
 ## UI Structure
 1. **Left Rail:** lists all dashboards + states, highlights Face Studio as “SvelteKit · Uno · Houdini”, reiterates that every dashboard can pick its stack.
@@ -29,16 +29,15 @@ Bring InsightFace similarity sweeps (two scripts) and the Nitara headshot croppe
    - Input/output folders, margin %, min confidence, minimum face size.
    - Run + reset buttons, SparkProgress, summary counters (processed/total/state), skip/log feed.
 5. **Right Rail (“Insight Console”):**
-   - Anchor threshold cards with “Calibrated” chips.
-   - Live job states (Step 1, Step 2, Cropper) keyed off event updates.
-   - System notes + tip (e.g., GPU vs CPU expectations, simulated jobs).
-   - Recent log stack (latest twelve lines aggregated from all panels).
+   - Now rendered in React (`Code/neura-ui/src/face/FaceRightRail.jsx`) so it shares the same footprint as DB1/DB2.
+   - Receives `postMessage` updates from the embedded app (anchor thresholds, live job states, system notes, recent logs).
+   - Future additions (rule counts, output chips, thumbnails) will land here once backend adapters emit real artifacts.
 
 ## Current Status
 - Full SvelteKit UI implemented (see `Code/face-studio/src/routes/+page.svelte` and components under `src/lib/components`).
 - UNO/Houdini theme + worklet wired in (`uno.config.ts`, `static/houdini/orbital-noise.js`, `src/app.css`).
-- React shell loads Face Studio via iframe; dev mode points to the Svelte dev server, production uses the embedded bundle under `public/face-studio`.
-- Backend still simulates long-running InsightFace jobs, so the UI focuses on UX polish, payload validation, and telemetry hooks.
+- React shell now controls the fully standardized frame: the Svelte embed renders only the decks, while `FaceDashboard.jsx` hosts the iframe and `FaceRightRail.jsx` mirrors the Insight console layout from DB1/DB2.
+- Backend still simulates long-running InsightFace jobs, so the current focus is on UX polish, telemetry hand-off to React, and prepping the UI for real adapters.
 
 ## Next Steps
 1. Replace the `face_jobs` simulator with adapters that call the real InsightFace + crop scripts and stream log lines/output references.
@@ -49,6 +48,6 @@ Bring InsightFace similarity sweeps (two scripts) and the Nitara headshot croppe
 ```bash
 cd Code/face-studio
 npm install
-npm run dev -- --open   # defaults to http://127.0.0.1:5174
+npm run dev -- --open   # defaults to http://0.0.0.0:5174
 ```
 Set `VITE_API_BASE` if FastAPI is not on `127.0.0.1:8000`. The Svelte app polls `/faces/jobs/{id}` automatically.
