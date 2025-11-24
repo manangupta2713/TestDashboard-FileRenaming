@@ -40,6 +40,7 @@ Code/neura-ui/*.local
 Code/face-studio/.svelte-kit/
 Code/face-studio/build/
 Code/face-studio/dist/
+Samples/
 
 # Editor / IDE metadata
 .vscode/*
