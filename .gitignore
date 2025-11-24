@@ -1,0 +1,52 @@
+# --- Python / FastAPI workspace ---
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.python-version
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+.venv/
+venv/
+.env
+.env.*
+
+# Build artifacts + packaging
+build/
+dist/
+*.egg-info/
+
+# Logs and misc cache
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.DS_Store
+Thumbs.db
+
+# Frontend (React, Svelte) dependencies/builds
+node_modules/
+**/node_modules/
+Code/neura-ui/dist/
+Code/neura-ui/dist-ssr/
+Code/neura-ui/*.local
+Code/face-studio/.svelte-kit/
+Code/face-studio/build/
+Code/face-studio/dist/
+
+# Editor / IDE metadata
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
