@@ -17,6 +17,10 @@ This tracker is the live follow-up to the Project Brief. Read it after the brief
 - **Face Studio UI refinement:** continue iterating on MDB spacing, deck padding, and Insight-specific iconography now that the right rail lives in React (`Code/neura-ui/src/face/FaceRightRail.jsx`) and the embed only renders the maroon card.
 - **Testing push:** Backend Pytest already ≥91 %. Frontend Vitest (React dashboards) still sits around 88 % statements / 83 % branches with two OpsConsole guard specs failing—see `Code/neura-ui/tests/frontend/frontend-error.md`. SvelteKit dashboard will need its own Playwright/Vitest plan once backend adapters land.
 
+### Repository Hygiene (2025‑11‑24)
+- Consolidated the Git history into the sole `/mnt/d/Cursor/FileOps-DB3` checkout on `main`; all legacy worktrees have been removed to simplify branch management.
+- Added a root-level `.gitignore` so Python caches, virtualenvs, coverage artifacts, Node builds, and the heavy `Samples/` directory stay local-only while remote clones retain every required source file.
+
 ### Upcoming / Backlog
 - Advanced rename features: insert-at-index, replace text, numbering, recursion, undo/export logs.
 - Dataset enhancements: caption history diffing, CSV download affordances, drag-and-drop/browse dialogs.
