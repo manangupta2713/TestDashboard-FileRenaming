@@ -1,45 +1,62 @@
 # Progress Tracker
 
-## Snapshot (2024-??)
-| Area | Status | Notes | Immediate Next Step |
-| --- | --- | --- | --- |
-| Rename engine (core helpers) | ✅ Done | Prefix/suffix add/remove helpers mirror the legacy script and normalize delimiters. | Monitor for edge cases reported by users. |
-| FastAPI endpoints | ✅ Done | `/preview` and `/run` share `compute_new_names`, collision handling, and structured summaries. | Consider surfacing per-file errors after run. |
-| Frontend wiring | ✅ Done | OpsConsole builds ordered payloads, calls the API, and shows preview/run summaries. | Keep parity with backend contract as it evolves. |
-| Workspace / folder UX | ✅ Done | Clipboard helper, “Check & Load,” recent paths, colored guidance text. | Maybe add browse dialog or drag-and-drop in future. |
-| Operations grid logic | 🟢 Polished | Auto-assigns steps when text is entered, enforces swaps, and blocks empty rows with a toast. | Add undo/redo or templates later if needed. |
-| Preview table | ✅ Done | Scrollable table, alternating backgrounds, sticky header, summary pills. | Add sorting/filtering when needed. |
-| Visual polish | 🟡 In progress | Gradient glass shell, corner glows, recents fly-out perfected; still tuning animations + light balance. | Finish glow alignment + add iconography. |
-| Advanced rename features | 🔴 Not started | Ideas include bulk find/replace, numbering, recursive folders, undo. | Prioritize based on user feedback once core UI ships. |
-| Testing & resilience | 🟡 In progress | Manual testing through UI; no automated tests yet. | Define minimum regression test list (unit + e2e) for next milestone. |
+This tracker is the live follow-up to the Project Brief. Read it after the brief and use it to understand what is finished, what remains in flight, and which files own each area.
 
-## Agent Onboarding Map
-| Focus Area | Files / Folders | Read For Context | When Picking Up Work |
-| --- | --- | --- | --- |
-| Rename engine helpers | `Code/Option_C-Max-API.py` | Functions `apply_*` + `compute_new_names` show how prefixes/suffixes are processed, collisions counted, and summaries built. | Update helper logic or summary rules here; keep API models in sync. |
-| FastAPI endpoints | `Code/Option_C-Max-API.py` | `/preview` + `/run` handlers wire the helpers into HTTP responses and reveal validation behavior. | Extend payloads or error reporting; run `uvicorn Option_C-Max-API:app --reload` for manual tests. |
-| Folder workspace UX | `Code/neura-ui/src/components/OpsConsole.jsx` (Workspace + Recents blocks) | Contains folder path input, clipboard helper, recents fly-out, and status copywriting. | Adjust state names or UX hints here, keep parity with backend folder expectations. |
-| Operations grid logic | `Code/neura-ui/src/components/OpsConsole.jsx` (Operations builder section) | Handles ordered steps, auto-numbering, swap safeguards, and toast messaging. | Touch this file when adding new operation types or enforcing validation. |
-| Preview table + summaries | `Code/neura-ui/src/components/OpsConsole.jsx` (Preview card) | Renders renamed vs. original names plus summary chips using Axios responses. | Update table columns, sorting, or summary pills here; coordinate with backend payload whenever columns change. |
-| Frontend shell & visuals | `Code/neura-ui/src/App.jsx`, `BlobField.jsx`, `WaveScene.jsx`, `Particles.jsx`, `SmokeField.jsx` | These files draw the “glass dashboard” gradients, animated blobs, and overall layout. | Modify layout/polish here; keep OpsConsole import paths intact. |
-| Testing & resilience | No dedicated folder yet; manual runs through `neura-ui` UI hitting local FastAPI | Notes live in this tracker plus ad-hoc scripts. | When adding tests, create `tests/` (backend) or React Testing Library setup; document steps back here. |
+---
 
-## 0→1 Checklist for Incoming Agents
-1. Read `AGENTS.md`, `Documentation/PROJECT_BRIEF.md`, then this tracker to anchor scope and etiquette.
-2. Start FastAPI locally from `Code/` (`uvicorn Option_C-Max-API:app --reload`) so `/preview` + `/run` are reachable.
-3. Inside `Code/neura-ui/`, run `npm install` once, then `npm run dev` to boot the dashboard at `http://127.0.0.1:5173`.
-4. Open `Code/Option_C-Max-API.py` and `Code/neura-ui/src/components/OpsConsole.jsx` side by side; these two files cover nearly all current functionality.
-5. Before coding, update the “Snapshot” table and this checklist with anything notable so the next agent lands on their feet.
+## Current Snapshot (2025‑11‑20)
 
-## Recent Highlights
-- Smart step management in OpsConsole: auto-numbering, swap behavior, and empty-row guard toasts.
-- Recents panel separated from the main card so TC/MC align perfectly at shared width.
-- Corner gradients now animated gently and anchored at the screen edges for a calmer backdrop.
+### Shipped & Stable
+- **Smart Renamer (React + Tailwind):** Backend helpers, `/preview` + `/run`, workspace UX, operations grid, preview table, and run flows all mirror the PySide baseline. Continue to monitor for edge-case reports; advanced rename recipes are still backlog.
+- **Dataset Actions foundations (React + Chakra):** Caption Atelier, Caption Courier, Blank TXT Forge, copy/make-blank routines, snapshot restore, and recents rail are functional. Backend lives in `dataset_actions_core.py` with ≥91 % Pytest coverage.
+- **Face Studio frontend (SvelteKit + Uno + Houdini, embedded in React):** The Svelte UI lives under `Code/face-studio`, now served inside the React shell via an iframe. A new `embed` mode lets the Svelte app hand off the left/title/right rails to React so DB3 now fills the exact same main-card footprint/tones as DB1 + DB2. MDB #1 (Step 1 + Step 2) and MDB #2 (Cropper) use the finalized fold-over tab design, poll `/faces/jobs/{id}`, show spark progress, stream logs, and update the right-rail telemetry. Switches between dashboards remain instant because the React app serves the Svelte bundle from `public/face-studio`.
+
+### Actively In Progress
+- **Dataset Actions polish:** tighten preview-table spacing, align summary chips, and unify folder controls/styles across modules. Files: `Code/neura-ui/src/dataset/DatasetActionsDashboard.jsx`.
+- **Face Studio backend integration:** current FastAPI routes (`/faces/step1|step2|crop/run`, `/faces/jobs/{id}`) still call `face_jobs.JobManager`, which simulates counts/logs. Next milestones: wrap the real `face_similarity_step1.py`, `face_similarity_step2.py`, and `face_cropper_nitara.py`, expose real log/output paths, add thumbnail/output chips to the Svelte app.
+- **Visual polish consistency:** align glow anchors across dashboards, add Insight-specific iconography, prep recent-output rails for Face Studio once logs/files are real.
+- **Testing push:** Backend Pytest already ≥91 %. Frontend Vitest (React dashboards) still sits around 88 % statements / 83 % branches with two OpsConsole guard specs failing—see `Code/neura-ui/tests/frontend/frontend-error.md`. SvelteKit dashboard will need its own Playwright/Vitest plan once backend integration stabilizes.
+
+### Upcoming / Backlog
+- Advanced rename features: insert-at-index, replace text, numbering, recursion, undo/export logs.
+- Dataset enhancements: caption history diffing, CSV download affordances, drag-and-drop/browse dialogs.
+- Face Studio extras: real-time rule counts, anchor calibration editors, headshot thumbnail reels, persistent run history.
+- Platform-wide ergonomics: richer recents management, optional browse dialogs, shared telemetry panel patterns.
+
+---
+
+## Key Files & Responsibilities
+- **Backend:** `Code/Option_C-Max-API.py`, `dataset_actions_core.py`, `face_jobs.py`, and the InsightFace scripts under `Code/Upcoming/`. Job adapters will live alongside `face_jobs` once implemented.
+- **Smart Renamer frontend:** `Code/neura-ui/src/components/OpsConsole.jsx`, `Code/neura-ui/src/App.jsx`.
+- **Dataset Actions frontend:** `Code/neura-ui/src/dataset/DatasetActionsDashboard.jsx`.
+- **Face Studio frontend:** `Code/face-studio/src/routes/+page.svelte` plus components in `Code/face-studio/src/lib/components`. Embedded bundle output lives under `Code/neura-ui/public/face-studio`; `Code/neura-ui/src/face/FaceDashboard.jsx` hosts the iframe.
+- **Testing:** Backend tests in `Code/neura-ui/tests/backend`. Frontend tests + logs in `Code/neura-ui/tests/frontend`. New Svelte tests TBD.
+
+---
+
+## Testing & Validation Rules
+1. Do not water down tests for convenience. Fix root causes instead.
+2. Backend suites must keep ≥90 % coverage (currently ≥91 %).
+3. Frontend coverage must reach ≥90 % statements/branches with no exclusions on working code. Because WSL blocks Vitest/Tinypool, the user runs `npm run test -- --coverage` on a native host and records results inside `Code/neura-ui/tests/frontend/frontend-error.md`; always consult that log before debugging.
+4. Follow the dashboard cadence from AGENTS.md: plan → build → refine → (only after green-light) write comprehensive tests and prove ≥90 % coverage for the new work.
+
+---
+
+## Downstream Reading Sequence (Wave 2 → Wave 3)
+1. `Documentation/HUMAN_GUIDE.md`
+2. `Documentation/Git-Ops.md`
+3. `Documentation/DB3-brief.md`
+4. Source files listed in the “Key Files” section above (read all relevant files before coding).
+
+---
 
 ## Open Questions
-1. Should we persist successful run logs or exportable reports for auditing?
-2. Do we need undo/rollback before rolling out to a wider audience?
-3. Which advanced operations (find/replace, numbering, recursion) should be prioritized next?
+1. What telemetry/output surfacing should appear in the Face Studio right rail once real InsightFace runs are wired—rule counts, preview thumbnails, log download links?
+2. Which advanced rename features (find/replace, numbering, recursion, undo) should land next after the current UI work?
+3. Do we need undo/rollback or exportable reports before inviting more users?
+4. Should we standardize a testing stack for the SvelteKit dashboard (Playwright, Vitest, or both) once the backend adapters are live?
 
-## Next Planning Checkpoint
-Once the outstanding UI polish items are identified, schedule a design/dev sync to lock the next mini-sprint (polish vs. feature expansion vs. testing).
+---
+
+## Next Coordination Checkpoint
+After Dataset Actions polish and the Face Studio backend adapter plan are locked, schedule a design/dev sync to decide whether the next sprint focuses on (a) InsightFace integration, (b) frontend test coverage, or (c) Smart Renamer feature expansion.*** End Patch

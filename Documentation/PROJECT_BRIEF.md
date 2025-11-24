@@ -1,64 +1,68 @@
 # Project Brief
 
 ## Purpose
-NeuraMax Smart Renamer is a local-first dashboard that lets a user clean up a single folder full of files without needing scripting knowledge. The tool focuses on four predictable string tweaks—adding or removing a prefix or suffix—so the user can re-label large drops of media or renders in seconds.
+NeuraMax is a local-first control room for repetitive creative-ops work. The product doubles as a living lab for its creator—a visual designer who is intentionally experimenting with different frontend stacks to understand how various frameworks, design systems, and backend pairings behave in production-quality dashboards. Each dashboard is therefore allowed to choose its own stack (even if partially overlapping with others) while still plugging into the same FastAPI backend. The suite now spans three coordinated dashboards: Smart Renamer (single-folder prefix/suffix tweaks), Dataset Actions (caption atelier, courier, TXT utilities), and the emerging Face Similarity & Crop Studio. Dashboards 1 and 2 ship today; Dashboard 3 intentionally moves to a SvelteKit + UnoCSS + CSS Houdini stack to stretch our design language. For now, it exposes simulated InsightFace runs so we can finish the UX before wiring in the heavy scripts that live in `Code/Upcoming/`.
 
-## Core Rename Workflow
-1. Paste or type a folder path that lives on the local machine.
-2. Ask the FastAPI backend to “Check & Load” the folder (non-recursive) and report how many files it finds.
-3. Configure up to four ordered operations (steps 1–4). Each operation can be one of `add_prefix`, `remove_prefix`, `add_suffix`, or `remove_suffix`, and a step number can only be used once.
-4. Click Preview to see the proposed mapping (original vs. new names) as well as counts of renamed, unchanged, and collision-resolved files.
-5. If everything looks correct, click Run to apply the rename mapping inside that single folder.
+### Dashboard Lineup
+1. **Smart Renamer (shipped):** single-folder rename console with four ordered prefix/suffix operations that mirrors our PySide legacy logic.
+2. **Dataset Actions (feature-complete, polish pending):** caption atelier, caption courier, blank TXT forge, make-copy tools, and snapshot/undo utilities that reuse the renamer’s muscle-memory layout.
+3. **Face Similarity & Crop Studio (frontend complete, backend adapters pending):** two vertically stacked mini-dashboards dedicated to the InsightFace flows from `face_similarity_step1.py`, `face_similarity_step2.py`, and `face_cropper_nitara.py`. This dashboard now lives in its own SvelteKit + UnoCSS + Houdini canvas so we can explore non-React motion/gradient techniques without sacrificing the shared outer frame.
+   - **MDB #1 – Similarity Sweeps:** Step 1 and Step 2 controls share the same card (folders, anchors/calibration inputs, move mode, detection thresholds, quality-gate toggles, spark progress bars, and log feeds). The new Svelte UI talks to the existing FastAPI simulator so we can validate the choreography before executing the GPU scripts.
+   - **MDB #2 – Headshot Cropper:** exposes input/output pickers, margin/min-confidence knobs, skip counters, and a progress rail driven by the same simulated job service. Next milestones: plug in the Nitara cropper, show recent headshot chips, and surface skip reason logs.
 
-## UI / UX Direction
-- Full-screen “glass dashboard” aesthetic with layered gradients, soft glows, and motion micro-interactions supplied by Framer Motion.
-- The Ops Console card keeps all workflow controls together: folder workspace, operation builder, preview table, and actionable run buttons.
-- Status text communicates what to do next (“Paste a folder,” “Preview ready,” “Folder not found”) using color cues (muted, teal OK, rose error).
-- A floating “Recent folders” list along the right side lets the user re-select prior paths without re-copying from Explorer.
-- Buttons highlight the expected order of operations: clipboard helper → check → configure ops → preview → run.
+All dashboards keep the same left rail, title treatment, centered glass card, and right-column footprint so operators gain muscle memory even as tones/themes diverge.
 
-## Backend / API Overview
-- **Tech**: FastAPI + Pydantic models, exposed via `Option_C-Max-API.py`.
-- **Endpoints**:
-  - `POST /preview` takes `{ folder, operations[] }`, validates the folder, simulates the rename steps, resolves name collisions by appending `_1`, `_2`, etc., and returns `{ files: [{original,new}], summary }`.
-  - `POST /run` accepts the same payload, reuses the same computation, and then performs `os.rename` for each changed file before returning the summary.
-- **Safety constraints**: operates only on a single directory (non-recursive). Skips files whose computed result matches the original name. Tracks collisions so the summary can alert the user.
+## Core Rename Flow
+1. Paste or type a folder path on the local machine.
+2. Click **Check & Load** so the backend confirms the folder (non-recursive) and reports how many files it finds.
+3. Configure up to four ordered rename operations (steps 1–4), each being `add_prefix`, `remove_prefix`, `add_suffix`, or `remove_suffix`.
+4. Click **Preview** to see the proposed mapping (original vs. new names) plus counts of renamed, unchanged, and collision-resolved files.
+5. If the preview matches expectations, click **Run** to apply the rename mapping inside that single folder.
 
-## Frontend / App Structure
-- **Framework**: Vite + React with Tailwind CSS and Framer Motion. Entry point `src/App.jsx` sets the background canvas and renders `<OpsConsole />`.
-- **OpsConsole responsibilities**:
-  - Manage folder path state, clipboard paste helper, debounced status messaging, and persistence of the last five folder paths in `localStorage`.
-  - Capture the four rename operations, enforce one step per operation, and build an ordered payload for the backend.
-  - Handle Preview / Run calls via Axios, show loading states, and display summaries + per-file mappings in a scrollable table.
-  - Surface run feedback (“Running…”, “Run completed”, “Run error”) and automatically refresh the preview after a successful run.
+## Dataset Actions Snapshot
+- Caption Atelier mirrors the rename layout with folder pills, backup toggles, caption tables, and prefix/suffix operations that share the backend helpers.
+- Caption Courier copies TXT sidecars between folders with overwrite and dry-run controls.
+- Blank TXT Forge, snapshot restore, and log chips reuse the same card architecture; UI polish (spacing, summary chips, folder rails) is the final to-do.
+
+## Face Studio Snapshot
+- Dashboard #3 is the first to move outside the React codebase. The dedicated SvelteKit app (`Code/face-studio`) ships with UnoCSS utility tokens, CSS Houdini shaders, spark progress components, and emits job status/log events back to the right rail.
+- FastAPI exposes `/faces/step1/run`, `/faces/step2/run`, `/faces/crop/run`, and `/faces/jobs/{id}`. These endpoints currently call into `face_jobs.JobManager`, which counts images, simulates state/log updates, and will later wrap the InsightFace + crop scripts.
+- Right-rail already shows anchor thresholds, live job states, GPU/CPU notes, and recent log lines; future work will add clickable output chips and thumbnail reels once real scripts run.
+- React embeds the Svelte build via an iframe but now passes an `embed` flag so the Svelte app yields the outer rails/title card back to React; DB3 therefore fills the same main-card footprint/colors as the other dashboards while still controlling its maroon interior decks.
+
+## Experience Pillars
+- Full-screen “glass dashboard” aesthetic with layered gradients, soft glows, and Framer Motion micro-interactions.
+- A single Ops Console card keeps every control together: folder workspace, operations grid, preview table, and run buttons.
+- Status text constantly nudges the next action (“Paste a folder,” “Preview ready,” “Folder not found”) using muted/teal/error tones.
+- Recents lists (rename + dataset) let the user re-select prior paths without digging through Explorer; Face Studio will reuse this idea once scripts land.
+- Buttons reinforce the expected order: clipboard helper → load folder → configure ops → preview → run.
+
+## Global Layout Rules
+- The left dashboard switcher, title card, and main card must always share identical widths and relative positions across every dashboard.
+- The right-side quiet space (recents list, log panel, or Insight console) keeps the same footprint so the overall frame never shifts.
+- No view may introduce scrolling—every dashboard stays within the fixed-height frame so the glass cards appear locked in place on load.
+- Typography sizing stays in lockstep across dashboards; themes change via tone/glow, not by resizing the foundational type ramp.
+
+## Architecture Overview
+- **Backend:** FastAPI (`Code/Option_C-Max-API.py`) exposes rename endpoints, dataset-action helpers, and the face job APIs. Rename logic is purposefully constrained to a single folder. Dataset endpoints call into `dataset_actions_core.py` (load, preview, run, copy, make blank, snapshot restoration). Face APIs currently rely on `face_jobs.py`, a lightweight job manager that simulates long-running InsightFace/crop tasks until we replace it with adapters that invoke the scripts under `Code/Upcoming/`.
+- **Frontend:** Multiple stacks by design. Dashboards #1 and #2 still live in the Vite + React + Tailwind workspace (`Code/neura-ui`) so we can iterate quickly on shared UX. Dashboard #3 is being rebuilt in its own SvelteKit workspace with UnoCSS tokens and CSS Houdini shaders to push the visual language forward. Every dashboard honors the shared outer frame (left nav, title card, centered main card, right utilities) regardless of the framework.
 
 ## Data Flow Snapshot
-```
-User input → OpsConsole state → Axios POST to FastAPI → compute_new_names → response summary/mapping → OpsConsole preview/run table
-```
-
-## Repository Orientation & First Steps
-1. **Start with docs**: skim `AGENTS.md` (collaboration rules) at repo root, then this brief, then `Documentation/PROGRESS_TRACKER.md` for current status.
-2. **Backend (FastAPI)**
-   - File: `Code/Option_C-Max-API.py`.
-   - What to look for: `compute_new_names`, the `/preview` + `/run` route handlers, and the helper functions that add or strip prefixes/suffixes.
-   - Typical workflow: from the `Code` folder run `uvicorn Option_C-Max-API:app --reload` (or `python Option_C-Max-API.py`) while testing locally; adjust helper logic here.
-3. **Frontend (Vite/React)**
-   - Folder: `Code/neura-ui/`.
-   - Key files after `npm install && npm run dev`: `src/main.jsx` (mounts React), `src/App.jsx` (background shell and layout), and `src/components/OpsConsole.jsx` (all rename controls, preview table, and API calls). Visual extras live beside it (`BlobField.jsx`, `WaveScene.jsx`, etc.).
-   - Usual workflow: keep `npm run dev` running, edit `OpsConsole` when touching workflow logic, update `App.jsx` for layout/visual framing.
-4. **Testing a change**
-   - Backend-only tweak: adjust `Code/Option_C-Max-API.py`, hit `/preview` or `/run` via curl/Postman or from the UI.
-   - Frontend tweak: edit `Code/neura-ui/src/**`, rely on the running API at `127.0.0.1:8000`.
-5. **Need a map?** Use `PROGRESS_TRACKER.md`’s “Agent Onboarding Map” (see below) whenever you are unsure which feature maps to which files.
+- **Rename:** Ops Console state → Axios POST (`/preview`, `/run`) → rename computation + collision handling → summary + per-file mapping back to the UI.
+- **Dataset actions:** UI builds caption/courier payloads → FastAPI delegates to dataset helpers → summary/logs/CSV paths returned. Snapshot restore + copy endpoints provide additional loops.
+- **Face Studio (current):** SvelteKit app calls `/faces/step1|step2|crop/run` to start a job → backend creates a job_id via `face_jobs.JobManager` → UI polls `/faces/jobs/{id}` for spark progress, logs, and completion. Job manager will proxy the InsightFace + crop scripts once adapters are finished.
 
 ## Current Boundaries
-- Only simple prefix/suffix operations (no find/replace, regex, or nested folders yet).
-- Relies on the user to copy/paste Windows-style paths (UI hints reflect that).
-- No authentication; assumes local trusted environment with backend reachable at `127.0.0.1:8000`.
+- Rename dashboard: still limited to prefix/suffix steps (no regex, numbering, recursion, or multi-folder batching).
+- Dataset actions: UI polish for the preview table + summary chips is pending; caption tooling assumes TXT sidecars live next to the images; recursive scans exist but lack deep UX surfacing.
+- Face Studio: endpoints simulate work; InsightFace comparisons, Excel/CSV outputs, and face preview galleries are not yet wired. Clipboard/manual folder entry remains the workflow (no system file picker).
+- Platform-wide: local-only (no auth) on `127.0.0.1`, and every dashboard must remain scroll-free within the fixed-height frame.
 
-## Near-Term Opportunities
-- Introduce richer rename recipes (insert at index, replace text, numbering, recursive folder support).
-- Add inline validation (show sample output live as a user types).
-- Provide undo/rollback, history export, or dry-run reports.
-- Expand preview table with filtering, search, or download as CSV for auditing.
+## Opportunity Backlog
+- Rename: insert-at-index, replace text, numbering, recursion, undo/export logs, inline previews while typing.
+- Dataset: finish preview-table spacing, align summary chips, expose caption history diffing, add CSV download affordances.
+- Face Studio: replace the simulated jobs with the actual InsightFace/crop scripts, surface live log files + rule counts, add thumbnail reels for scored/cropped faces, and persist last-run settings.
+- Platform-wide: optional browse dialogs, richer recents management, experiment-specific right-rail content.
+
+## Next Step After This Brief
+Proceed directly to the Progress Tracker (`Documentation/PROGRESS_TRACKER.md`). It captures the live state, points you to `Documentation/DB3-brief.md` for Dashboard #3 context, and hands you the next set of documents and source files to read.

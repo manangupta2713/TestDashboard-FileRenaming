@@ -1,8 +1,8 @@
 // src/components/OpsConsole.jsx
 // Pastel NeuraMax glass card + folder selector + 4-row operations grid + Preview wiring
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { motion as Motion } from "framer-motion";
 import axios from "axios";
 
 const API_BASE = "http://127.0.0.1:8000";
@@ -66,7 +66,7 @@ export function OpsConsoleProvider({ children }) {
           setRecentFolders(parsed);
         }
       }
-    } catch (_) {
+    } catch {
       // ignore
     }
   }, []);
@@ -81,6 +81,7 @@ export function OpsConsoleProvider({ children }) {
 
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [previewData, setPreviewData] = useState(null);
+  const [selectionMap, setSelectionMap] = useState({});
 
   const [isRunning, setIsRunning] = useState(false);
   const [runStatus, setRunStatus] = useState(null);
@@ -112,7 +113,7 @@ export function OpsConsoleProvider({ children }) {
       const next = [trimmed, ...without].slice(0, 5);
       try {
         localStorage.setItem("nm_recent_folders", JSON.stringify(next));
-      } catch (_) {
+      } catch {
         // ignore
       }
       return next;
@@ -132,6 +133,7 @@ export function OpsConsoleProvider({ children }) {
     setStatusTone("muted");
     setFileCount(null);
     setPreviewData(null);
+    setSelectionMap({});
     setRunStatus(null);
     rememberFolder(path);
 
@@ -152,6 +154,7 @@ export function OpsConsoleProvider({ children }) {
       console.error(err);
       setFileCount(null);
       setPreviewData(null);
+      setSelectionMap({});
       if (err.response?.status === 404) {
         setStatusMsg("Folder not found. Check the path and try again.");
       } else {
@@ -280,12 +283,12 @@ export function OpsConsoleProvider({ children }) {
         folder: folderPath.trim(),
         operations,
       });
-      setPreviewData(resp.data);
+      applyPreviewPayload(resp.data, true);
       setStatusMsg("Preview ready.");
       setStatusTone("ok");
     } catch (err) {
       console.error(err);
-      setPreviewData(null);
+      applyPreviewPayload(null, false);
       if (err.response?.status === 404) {
         setStatusMsg("Folder not found while previewing. Check the path again.");
       } else {
@@ -310,20 +313,46 @@ export function OpsConsoleProvider({ children }) {
     }
 
     const operations = buildOperationsPayload();
+    let includeFilesPayload = null;
+    if (previewData?.files?.length) {
+      includeFilesPayload = previewData.files
+        .filter((file) => selectionMap[file.original] !== false)
+        .map((file) => file.original);
+      if (includeFilesPayload.length === 0) {
+        setStatusMsg("Select at least one file in the preview before running.");
+        setStatusTone("error");
+        setRunStatus({
+          tone: "error",
+          msg: "Run aborted: no files selected.",
+        });
+        return;
+      }
+    }
     setIsRunning(true);
     setRunStatus({ tone: "muted", msg: "Running rename operations…" });
 
     try {
-      const resp = await axios.post(`${API_BASE}/run`, {
+      const payload = {
         folder: folderPath.trim(),
         operations,
-      });
+      };
+      if (includeFilesPayload) {
+        payload.include_files = includeFilesPayload;
+      }
+      const resp = await axios.post(`${API_BASE}/run`, payload);
 
       const runSummary = resp.data?.summary;
       if (runSummary) {
         setRunStatus({
           tone: "ok",
           msg: `Run completed · Renamed: ${runSummary.renamed}, Unchanged: ${runSummary.unchanged}, Collisions: ${runSummary.collisions}`,
+        });
+      } else if (previewData?.files?.length) {
+        setRunStatus({
+          tone: "ok",
+          msg: `Run completed for ${includeFilesPayload.length} selected file${
+            includeFilesPayload.length === 1 ? "" : "s"
+          }.`,
         });
       } else {
         setRunStatus({
@@ -340,7 +369,7 @@ export function OpsConsoleProvider({ children }) {
           folder: folderPath.trim(),
           operations,
         });
-        setPreviewData(previewResp.data);
+        applyPreviewPayload(previewResp.data, false);
       } catch (innerErr) {
         console.error("Preview refresh after run failed:", innerErr);
       }
@@ -364,9 +393,64 @@ export function OpsConsoleProvider({ children }) {
     }
   };
 
+  const applyPreviewPayload = (data, preserveSelection = true) => {
+    setPreviewData(data);
+    const incoming = data?.files || [];
+    if (!incoming.length) {
+      setSelectionMap({});
+      return;
+    }
+    setSelectionMap((prev) => {
+      const base = preserveSelection ? prev : {};
+      const next = {};
+      incoming.forEach(({ original }) => {
+        next[original] = Object.prototype.hasOwnProperty.call(base, original)
+          ? base[original]
+          : true;
+      });
+      return next;
+    });
+  };
+
+  const files = useMemo(() => previewData?.files || [], [previewData]);
+  const summary = previewData?.summary || null;
+
+  const selectedCount = useMemo(() => {
+    if (!files.length) return 0;
+    return files.reduce(
+      (count, file) =>
+        selectionMap[file.original] !== false ? count + 1 : count,
+      0
+    );
+  }, [files, selectionMap]);
+  const allSelected = files.length > 0 && selectedCount === files.length;
+  const partiallySelected =
+    files.length > 0 && selectedCount > 0 && selectedCount < files.length;
+
+  const toggleFileSelection = (name, value) => {
+    setSelectionMap((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const toggleSelectAll = (nextValue) => {
+    setSelectionMap(() => {
+      const next = {};
+      files.forEach(({ original }) => {
+        next[original] = nextValue;
+      });
+      return next;
+    });
+  };
+
   const canPreview =
     folderReady && hasConfiguredOps && !isPreviewing && !isChecking;
-  const canRun = folderReady && hasConfiguredOps && !isRunning && !isChecking;
+  const canRun =
+    folderReady &&
+    hasConfiguredOps &&
+    !isRunning &&
+    !isChecking;
 
   const contextValue = {
     folderPath,
@@ -380,6 +464,7 @@ export function OpsConsoleProvider({ children }) {
     isPreviewing,
     isRunning,
     previewData,
+    selectionMap,
     runStatus,
     handleClipboardFill,
     handleCheckFolder,
@@ -389,8 +474,14 @@ export function OpsConsoleProvider({ children }) {
     handleRun,
     canPreview,
     canRun,
-    files: previewData?.files || [],
-    summary: previewData?.summary || null,
+    files,
+    summary,
+    selectedCount,
+    totalPreviewCount: files.length,
+    allSelected,
+    partiallySelected,
+    toggleFileSelection,
+    toggleSelectAll,
     setStatusMsg,
     setStatusTone,
   };
@@ -423,6 +514,13 @@ export function OpsConsoleMain() {
     isRunning,
     files,
     summary,
+    selectionMap,
+    selectedCount,
+    totalPreviewCount,
+    allSelected,
+    partiallySelected,
+    toggleFileSelection,
+    toggleSelectAll,
     runStatus,
   } = useOpsConsole();
 
@@ -448,11 +546,6 @@ export function OpsConsoleMain() {
       ? "text-rose-300"
       : "text-slate-300";
 
-  const isRowActive = (rowKey) => {
-    const state = ops[rowKey];
-    return state.step !== null && (state.value || "").trim() !== "";
-  };
-
   const [stepHint, setStepHint] = useState(null);
 
   useEffect(() => {
@@ -472,7 +565,7 @@ export function OpsConsoleMain() {
 
   return (
     <div className="relative">
-      <motion.div
+      <Motion.div
         initial={{ opacity: 0, y: 25, scale: 0.99 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ type: "spring", stiffness: 140, damping: 18, mass: 0.6 }}
@@ -481,7 +574,7 @@ export function OpsConsoleMain() {
         onMouseLeave={handleMouseLeave}
         className="relative h-full w-full"
       >
-        <motion.div
+        <Motion.div
           className="relative z-10 rounded-card overflow-visible
                     bg-nm_panel backdrop-blur-3xl
                     border border-white/7"
@@ -499,7 +592,7 @@ export function OpsConsoleMain() {
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <motion.button
+                  <Motion.button
                     type="button"
                     whileHover={{ scale: 1.03, y: -1 }}
                     whileTap={{ scale: 0.97, y: 0 }}
@@ -512,9 +605,9 @@ export function OpsConsoleMain() {
                   >
                     <span>📋</span>
                     <span>Use clipboard</span>
-                  </motion.button>
+                  </Motion.button>
 
-                  <motion.button
+                  <Motion.button
                     type="button"
                     whileHover={!isChecking ? { scale: 1.03, y: -1 } : {}}
                     whileTap={!isChecking ? { scale: 0.97, y: 0 } : {}}
@@ -528,7 +621,7 @@ export function OpsConsoleMain() {
                       }`}
                   >
                     {isChecking ? "Checking…" : "Check & Load"}
-                  </motion.button>
+                  </Motion.button>
                 </div>
               </div>
 
@@ -567,10 +660,9 @@ export function OpsConsoleMain() {
               <div className="mt-2 rounded-2xl bg-transparent space-y-[1px]">
                 {OP_ROWS.map((row) => {
                   const state = ops[row.key];
-                  const active = isRowActive(row.key);
                   const rowType = row.key.includes("prefix") ? "prefix" : "suffix";
                   return (
-                    <motion.div
+                    <Motion.div
                       key={row.key}
                       whileHover={{ y: -1 }}
                       transition={{ duration: 0.12, ease: "easeOut" }}
@@ -601,6 +693,7 @@ export function OpsConsoleMain() {
                                 key={n}
                                 type="button"
                                 onClick={() => handleStepPress(row.key, n, rowType)}
+                                aria-pressed={isActiveStep}
                                 className={`h-7 w-7 rounded-full text-[11px] font-semibold
                                   flex items-center justify-center
                                   transition-all duration-150
@@ -620,30 +713,37 @@ export function OpsConsoleMain() {
                             {stepHint.message}
                           </div>
                         )}
-                    </motion.div>
+                    </Motion.div>
                   );
                 })}
               </div>
             </section>
 
             <section className="space-y-3">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-3">
                 <h2 className="text-base md:text-lg font-semibold text-slate-50">
                   Preview
                 </h2>
-                {summary && (
-                  <div className="flex flex-wrap gap-2 text-[11px]">
-                    <span className="px-2.5 py-1 rounded-full bg-emerald-400/15 text-emerald-300 border border-emerald-400/40">
-                      Renamed: {summary.renamed}
+                <div className="flex flex-wrap gap-2 text-[11px] items-center">
+                  {summary && (
+                    <>
+                      <span className="px-2.5 py-1 rounded-full bg-emerald-400/15 text-emerald-300 border border-emerald-400/40">
+                        Renamed: {summary.renamed}
+                      </span>
+                      <span className="px-2.5 py-1 rounded-full bg-slate-500/15 text-slate-200 border border-slate-400/30">
+                        Unchanged: {summary.unchanged}
+                      </span>
+                      <span className="px-2.5 py-1 rounded-full bg-amber-400/15 text-amber-200 border border-amber-400/40">
+                        Collisions fixed: {summary.collisions}
+                      </span>
+                    </>
+                  )}
+                  {totalPreviewCount > 0 && (
+                    <span className="ml-1 text-slate-400">
+                      Selected {selectedCount} / {totalPreviewCount}
                     </span>
-                    <span className="px-2.5 py-1 rounded-full bg-slate-500/15 text-slate-200 border border-slate-400/30">
-                      Unchanged: {summary.unchanged}
-                    </span>
-                    <span className="px-2.5 py-1 rounded-full bg-amber-400/15 text-amber-200 border border-amber-400/40">
-                      Collisions fixed: {summary.collisions}
-                    </span>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
 
               <div className="rounded-2xl border border-white/10 bg-black/40 max-h-64 overflow-hidden flex flex-col">
@@ -657,6 +757,14 @@ export function OpsConsoleMain() {
                     <table className="min-w-full text-[11px] md:text-xs border-collapse">
                       <thead className="sticky top-0 bg-black/70 backdrop-blur">
                         <tr className="text-slate-300">
+                          <th className="w-10 text-center px-3 py-2 font-medium border-b border-white/10">
+                            <PreviewSelectAllCheckbox
+                              disabled={!files.length}
+                              checked={allSelected && !!files.length}
+                              indeterminate={partiallySelected}
+                              onChange={(checked) => toggleSelectAll(checked)}
+                            />
+                          </th>
                           <th className="text-left px-3 py-2 font-medium border-b border-white/10">
                             Original name
                           </th>
@@ -666,21 +774,48 @@ export function OpsConsoleMain() {
                         </tr>
                       </thead>
                       <tbody>
-                        {files.map((f, idx) => (
-                          <tr
-                            key={`${f.original}-${idx}`}
-                            className={`${
-                              idx % 2 === 0 ? "bg-black/20" : "bg-black/10"
-                            } hover:bg-nm_teal/8 transition-colors`}
-                          >
-                            <td className="px-3 py-1.5 text-slate-300 align-top">
-                              {f.original}
-                            </td>
-                            <td className="px-3 py-1.5 text-slate-50 align-top">
-                              {f.new}
-                            </td>
-                          </tr>
-                        ))}
+                        {files.map((f, idx) => {
+                          const rowSelected = selectionMap[f.original] !== false;
+                          return (
+                            <tr
+                              key={`${f.original}-${idx}`}
+                              className={`${
+                                idx % 2 === 0 ? "bg-black/20" : "bg-black/10"
+                              } hover:bg-nm_teal/8 transition-colors`}
+                            >
+                              <td className="px-3 py-1.5 text-center align-middle">
+                                <input
+                                  type="checkbox"
+                                  checked={rowSelected}
+                                  onChange={(e) =>
+                                    toggleFileSelection(f.original, e.target.checked)
+                                  }
+                                  className="h-4 w-4 rounded border border-white/30 bg-black/40 accent-nm_teal focus:ring-0 cursor-pointer"
+                                  aria-label={`Toggle ${f.original}`}
+                                />
+                              </td>
+                              <td className="px-3 py-1.5 text-slate-300 align-top">
+                                {f.original}
+                              </td>
+                              <td className="px-3 py-1.5 align-top">
+                                <div className="flex items-center gap-2 text-xs md:text-[11px]">
+                                  <span
+                                    className={
+                                      rowSelected ? "text-slate-50" : "text-slate-500"
+                                    }
+                                  >
+                                    {rowSelected ? f.new : f.original}
+                                  </span>
+                                  {!rowSelected && (
+                                    <span className="px-2 py-0.5 rounded-full text-[9px] uppercase tracking-wide text-amber-200 border border-amber-200/50 bg-amber-400/10">
+                                      Skipped
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -702,7 +837,7 @@ export function OpsConsoleMain() {
                 >
                   {isPreviewing ? "Previewing…" : "Preview"}
                 </button>
-                <motion.button
+                <Motion.button
                   type="button"
                   onClick={canRun ? handleRun : undefined}
                   whileHover={canRun ? { scale: 1.04, y: -1 } : {}}
@@ -715,7 +850,7 @@ export function OpsConsoleMain() {
                     }`}
                 >
                   {isRunning ? "Running…" : "Run"}
-                </motion.button>
+                </Motion.button>
               </div>
 
               {runStatus && (
@@ -725,9 +860,31 @@ export function OpsConsoleMain() {
               )}
             </section>
           </div>
-        </motion.div>
-      </motion.div>
+        </Motion.div>
+      </Motion.div>
     </div>
+  );
+}
+
+function PreviewSelectAllCheckbox({ checked, indeterminate, onChange, disabled }) {
+  const checkboxRef = useRef(null);
+  useEffect(() => {
+    if (checkboxRef.current) {
+      checkboxRef.current.indeterminate = !checked && indeterminate;
+    }
+  }, [checked, indeterminate]);
+  return (
+    <input
+      ref={checkboxRef}
+      type="checkbox"
+      disabled={disabled}
+      checked={checked}
+      onChange={(e) => onChange(e.target.checked)}
+      className={`h-4 w-4 rounded border border-white/30 bg-black/40 accent-nm_teal focus:ring-0 ${
+        disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer"
+      }`}
+      aria-label="Select all files"
+    />
   );
 }
 

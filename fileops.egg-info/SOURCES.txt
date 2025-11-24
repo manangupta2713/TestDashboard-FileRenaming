@@ -1,0 +1,10 @@
+pyproject.toml
+Code/Option_C-Max-API.py
+Code/dataset_actions_core.py
+Code/Depr/file_rename-PySide6.py
+Code/Upcoming/replace_word_in_files_and_filenames.py
+fileops.egg-info/PKG-INFO
+fileops.egg-info/SOURCES.txt
+fileops.egg-info/dependency_links.txt
+fileops.egg-info/requires.txt
+fileops.egg-info/top_level.txt

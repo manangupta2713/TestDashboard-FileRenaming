@@ -38,6 +38,10 @@ Use whichever command your team normally uses. If `requirements.txt` is missing,
 2. Start the server:
    ```
    uvicorn Option_C-Max-API:app --reload
+
+   OR
+
+   uvicorn Option_C-Max-API:app --reload --host 0.0.0.0 --port 8000
    ```
 3. Leave this terminal running. FastAPI will listen on `http://127.0.0.1:8000` and auto-reload when you edit Python files.
 
@@ -46,14 +50,25 @@ Open a **second** terminal window (repeat steps 1–2 above to enter WSL) and do
 ```
 cd /mnt/d/Cursor/FileOps/neura-ui
 npm install            # only on the first run
-npm run dev -- --host 127.0.0.1 --port 5173
+npm run dev -- --host 0.0.0.0 --port 5173
 ```
-Vite will print a local URL (usually `http://127.0.0.1:5173`). Keep this terminal open so the UI keeps running.
+Keep this terminal open so the UI keeps running.
 
-## 8. Verify everything is connected
+## 8. Launch the Face Studio (DB3) frontend (optional third terminal)
+DB3 now lives in a SvelteKit app (`Code/face-studio`) that embeds into the React shell. When you want to work on DB3:
+```
+cd /mnt/d/Cursor/FileOps/face-studio
+npm install --legacy-peer-deps        # first run only (relaxes Svelte peer warnings)
+npx svelte-kit sync                   # generates .svelte-kit/ files (rerun after pulling updates)
+npm run dev -- --host 0.0.0.0 --port 5174
+```
+Leave this terminal running. The React dashboard automatically loads `http://127.0.0.1:5174` (set via `VITE_FACE_STUDIO_DEV_URL`) inside the Face Studio tab.  
+**Production/preview builds:** run `npm run build:embed` here to copy the Svelte bundle into `Code/neura-ui/public/face-studio`, then build the React app as usual.
+
+## 9. Verify everything is connected
 1. In your web browser, open the printed Vite URL.
 2. Use the UI to paste a folder path and click **Check & Load**.
 3. If the backend is running correctly, the page will show how many files were found. If you see an error about connecting to the API, make sure the FastAPI terminal is still running without errors.
 
-## 9. Shutting down
+## 10. Shutting down
 When you finish, press `Ctrl+C` inside each terminal window to stop the servers, then close the windows. To restart work later, begin again at Step 1 (skip the creation/install steps if the environment is already set up).

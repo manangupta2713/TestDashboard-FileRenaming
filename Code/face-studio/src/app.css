@@ -1,0 +1,88 @@
+@import '@unocss/reset/tailwind.css';
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&display=swap');
+
+:root {
+  font-family: 'Space Grotesk', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #fff4e6;
+  background-color: #15100e;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: #15100e;
+}
+
+.nebula-shell {
+  position: relative;
+  min-height: 100vh;
+  background-color: #15100e;
+  overflow: hidden;
+}
+
+.nebula-shell::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: paint(orbital-noise);
+  opacity: 0.9;
+  z-index: 0;
+}
+
+.nebula-shell::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 15% 20%, rgba(255, 90, 95, 0.3), transparent 45%),
+    radial-gradient(circle at 85% 0%, rgba(255, 179, 71, 0.3), transparent 55%),
+    radial-gradient(circle at 70% 80%, rgba(14, 193, 154, 0.22), transparent 55%);
+  filter: blur(130px);
+  opacity: 0.85;
+  z-index: 0;
+}
+
+.grid-overlay {
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(rgba(255, 244, 230, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 244, 230, 0.02) 1px, transparent 1px);
+  background-size: 140px 140px;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.embedded-shell {
+  width: 100%;
+  min-height: 100%;
+  padding: 1.5rem;
+  background: transparent;
+  color: #fff4e6;
+}
+
+.embed-main-card {
+  width: 100%;
+  min-height: 100%;
+  padding: clamp(1rem, 1.8vw, 2.1rem);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.card-divider {
+  height: 1px;
+  width: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 244, 230, 0.35), transparent);
+}
+
+.spark-chip {
+  border-radius: 999px;
+  padding: 0.35rem 0.85rem;
+  border: 1px solid rgba(255, 244, 230, 0.25);
+  font-size: 0.7rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}

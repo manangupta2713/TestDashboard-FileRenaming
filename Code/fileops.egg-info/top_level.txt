@@ -1,3 +1,0 @@
-Option_C-Max-API
-file_rename
-replace_word_in_files_and_filenames
